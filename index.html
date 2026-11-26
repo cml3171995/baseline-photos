@@ -283,7 +283,7 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
     <div class="fieldLab">已上报照片（重新上报将替换为下方新照片）</div>
     <div class="thumbs" id="upOldThumbs"></div>
   </div>
-  <div class="fieldLab">现场照片（可多选，最多6张）</div>
+  <div class="fieldLab">现场照片（可多选，最多20张）</div>
   <div class="selArea" id="selArea" onclick="document.getElementById('fileInp').click()">
     <div class="big">📷</div>点击拍照 / 从相册选择
   </div>
@@ -560,7 +560,7 @@ $('fileInp').addEventListener('change',function(e){
   var fs=Array.prototype.slice.call(e.target.files||[]);
   e.target.value='';
   fs.forEach(function(f){
-    if(UP.files.length>=6){toast('一次最多6张，已忽略多余照片');return}
+    if(UP.files.length>=20){toast('一次最多20张，已忽略多余照片');return}
     if(!/^image\//.test(f.type)){return}
     UP.files.push({file:f,url:URL.createObjectURL(f)});
   });
