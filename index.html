@@ -368,7 +368,7 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
 <script>
 /* ============ 配置 ============ */
 var OWNER='cml3171995', REPO='baseline-photos';
-var TOKEN='gh'+'p_'+'pUrZQtbIYaRokeCDNFFhKxa5Us7PCE3xeHdt';
+var TOKEN='github'+'_pat_11CRLFBPQ0PDE4EGcM0hVu_XG7IMfCeAXtJBWppsXyWT7Qjwwhbyn0zOEQkuvclnwXNGRFTIFFL3LSG8Zi';
 var API='https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/';
 var VER='v20261126a';
 
@@ -378,7 +378,7 @@ var CUR_PROJ=localStorage.getItem('dx_proj')||'';
 var CUR_PART='';
 var ROLE='';
 var PASS='8888';
-function stName(st){return st==='ok'?'复核合格':st==='p_ok'?'初审通过':(st==='redo'||st==='p_redo')?'需重传':st==='pending'?'待初审':'未上报'}
+function stName(st){return st==='ok'?'复核合格':st==='p_ok'?'待监管审核':(st==='redo'||st==='p_redo')?'需重传':st==='pending'?'待初审':'未上报'}
 var IS_ADMIN=false, TAB='mx', VIEW_BATCH='';
 var UP={item:null,files:[],old:null};
 var DT={sub:null,proj:null,item:null};
@@ -558,7 +558,7 @@ function renderPartView(){
         mid='<div class="note">⚠ '+esc(s.rv||'照片不符合要求，请重新拍摄上传')+'</div>';
       }else{
         cls='done';done++;
-        badge= s.st==='ok'?'<span class="badge ok">已合格 · '+n+'张</span>': s.st==='p_ok'?'<span class="badge pok">初审通过 · 待复核</span>':'<span class="badge ok">已上报 '+n+'张 · 待初审</span>';
+        badge= s.st==='ok'?'<span class="badge ok">已合格 · '+n+'张</span>': s.st==='p_ok'?'<span class="badge pok">已上报 · 待监管审核</span>':'<span class="badge ok">已上报 '+n+'张 · 待初审</span>';
         meta='提交于 '+esc(shortTs(s.ts))+(s.note?(' · '+esc(s.note)):'');
         btn='<button class="actBtn ghost" onclick="openDetail(\''+esc(CUR_PROJ)+'\',\''+esc(CUR_PART)+'\',\''+esc(it)+'\')">查看</button>';
       }
@@ -690,7 +690,7 @@ function openDetail(projCode,partId,item){
   $('dtBody').innerHTML='<div class="thumbs" style="margin-top:2px">'+s.ph.map(function(x,i){return '<img src="'+x.t+'" style="width:30%;height:auto;aspect-ratio:1" onclick="openViewerPhotos(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\','+i+')">'}).join('')+'</div>'+
     ((s.st==='redo'||s.st==='p_redo')?'<div class="note" style="font-size:13px;color:var(--bad);background:var(--badbg);border-radius:10px;padding:9px 12px;margin-top:10px">⚠ 需重传：'+esc(s.rv||'不符合要求')+'</div>':
      s.st==='ok'?'<div style="font-size:13px;color:var(--ok);margin-top:10px;font-weight:700">✔ 复核合格</div>':
-     s.st==='p_ok'?'<div style="font-size:13px;color:#2c8c62;margin-top:10px;font-weight:700">✔ 初审通过 · 待分公司复核</div>':'');
+     s.st==='p_ok'?'<div style="font-size:13px;color:#2c8c62;margin-top:10px;font-weight:700">✔ 已上报 · 待监管审核</div>':'');
   var ab='';
   if(ROLE==='sh') ab='<div class="rowBtns"><button class="rbOk" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'p_ok\')">✔ 初审合格</button><button class="rbRedo" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'p_redo\')">✘ 初审打回</button></div>';
   else if(ROLE==='admin') ab='<div class="rowBtns"><button class="rbOk" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'ok\')">✔ 复核合格</button><button class="rbRedo" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'redo\')">✘ 打回重传</button></div>';
@@ -763,6 +763,7 @@ function doLogin(){
   var u=$('loginUser').value.trim().toUpperCase(),p=$('loginPass').value;
   var r=roleOf(u);
   if(!r){toast('账号不存在，请核对');return}
+  if(r.role==='sh'){toast('审核端已暂时下线，照片上传后由分公司监管端直接审核');return}
   if(p!==PASS){toast('口令不正确');return}
   sessionStorage.setItem('dx_role',r.role);
   sessionStorage.setItem('dx_proj',r.proj||'');
@@ -899,7 +900,7 @@ function wallRender(item){
       var s=null;subs.forEach(function(x){if(x.p===p.code&&x.part===pt.id&&x.item===item)s=x});
       if(!s||!(s.ph||[]).length)return;
       html+='<div class="wallGroup">'+esc(p.name)+' · '+esc(pt.name)+'</div><div class="wall">'+s.ph.map(function(x,i){
-        return '<div class="wp"><img src="'+x.t+'" loading="lazy" onclick="openViewerPhotos(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(item)+'\','+i+')">'+(s.st==='ok'?'<span class="rk ok">合格</span>':(s.st==='redo'||s.st==='p_redo')?'<span class="rk redo">重传</span>':s.st==='p_ok'?'<span class="rk" style="background:#3ba877">待复核</span>':'')+'<div class="cap">'+esc(shortTs(s.ts))+(s.note?(' · '+esc(s.note)):'')+'</div></div>';
+        return '<div class="wp"><img src="'+x.t+'" loading="lazy" onclick="openViewerPhotos(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(item)+'\','+i+')">'+(s.st==='ok'?'<span class="rk ok">合格</span>':(s.st==='redo'||s.st==='p_redo')?'<span class="rk redo">重传</span>':s.st==='p_ok'?'<span class="rk" style="background:#3ba877">待审</span>':'')+'<div class="cap">'+esc(shortTs(s.ts))+(s.note?(' · '+esc(s.note)):'')+'</div></div>';
       }).join('')+'</div>';
     });
   });
