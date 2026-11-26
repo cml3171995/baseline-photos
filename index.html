@@ -443,7 +443,7 @@ function renderProj(){
       var n=(s.ph||[]).length;
       if(s.st==='redo'){
         cls='redo';badge='<span class="badge redo">需重传</span>';
-        meta='上次提交：'+esc(shortTs(s.ts))+' · 审核意见：'+esc(s.rv||'不符合要求');
+        meta='上次提交：'+esc(shortTs(s.ts));
         btn='<button class="actBtn" onclick="openUpload(\''+esc(it)+'\')">重新上传</button>';
         mid='<div class="note">⚠ '+esc(s.rv||'照片不符合要求，请重新拍摄上传')+'</div>';
       }else{
@@ -666,7 +666,7 @@ function renderAdminStats(){
   var full=0,photos=0,redo=0;
   projs.forEach(function(p){
     var ok=0;
-    items.forEach(function(it){var s=null;subs.forEach(function(x){if(x.p===p.code&&x.item===it){s=x;if(x.st!=='redo'&&x.ph)x.ph.forEach(function(){photos++})}});
+    items.forEach(function(it){var s=null;subs.forEach(function(x){if(x.p===p.code&&x.item===it){s=x;if(x.ph)x.ph.forEach(function(){photos++})}});
       if(s&&s.st!=='redo')ok++;if(s&&s.st==='redo')redo++});
     if(items.length&&ok>=items.length)full++;
   });
