@@ -577,11 +577,12 @@ function renderPartView(){
   });
   });
   $('itemList').innerHTML=html;
-  $('progNum').innerHTML=done+'<small>/'+items.length+'</small>';
-  var pc=items.length?Math.round(done/items.length*100):0;
+  var total=allItems(b).length;
+  $('progNum').innerHTML=done+'<small>/'+total+'</small>';
+  var pc=total?Math.round(done/total*100):0;
   $('progI').style.width=pc+'%';
   $('progTxt').textContent='完成 '+pc+'%';
-  $('progTip').textContent=done>=items.length?'🎉 本批次已全部上报，感谢配合！':'已完成项自动打勾，未完成项点击"去上报"现场拍摄';
+  $('progTip').textContent=done>=total?'🎉 本批次已全部上报，感谢配合！':'已完成项自动打勾，未完成项点击"去上报"现场拍摄';
 }
 
 /* ============ 上报 ============ */
