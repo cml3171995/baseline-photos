@@ -133,6 +133,7 @@ textarea.inp:focus,input.inp:focus{border-color:var(--blue)}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;font-size:13px;font-weight:600;border-radius:99px;padding:7px 15px;background:#fff;border:1.5px solid var(--line);color:var(--tx2)}
 .chip.on{background:linear-gradient(135deg,var(--blue),#0a72cf);color:#fff;border-color:transparent}
+.dupePair{display:flex;gap:8px}.dupePair figure{flex:1;margin:0;min-width:0}.dupePair img{width:100%;border-radius:8px;display:block;cursor:pointer}.dupePair figcaption{font-size:11px;color:var(--tx2);margin-top:4px;line-height:1.4}
 .wallGroup{font-size:13px;font-weight:700;color:var(--tx2);margin:13px 2px 8px;display:flex;align-items:center;gap:7px}
 .wallGroup::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--blue)}
 .wall{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -244,6 +245,7 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
       <div id="partsAdminList"></div>
       <button class="mBtn" onclick="openNewProj()"><span>＋ 新增项目<span class="desc">添加参与上报的在建项目</span></span><span class="arr">›</span></button>
       <div class="secT" style="margin-top:16px"><b>汇总与催办</b></div>
+      <button class="mBtn" onclick="openDupeScan()"><span>🔍 AI照片查重<span class="desc">指纹比对全部照片，识别重复使用/一图多部位</span></span><span class="arr">›</span></button>
       <button class="mBtn" onclick="copyUrge()"><span>📋 一键催报<span class="desc">生成未报齐项目名单，复制后发工作群</span></span><span class="arr">›</span></button>
       <button class="mBtn" onclick="exportCSV()"><span>⬇ 导出上报清单(CSV)<span class="desc">含照片链接，建议电脑端打开后使用</span></span><span class="arr">›</span></button>
       <button class="ghostBtn" onclick="loadAdmin(true)">↻ 刷新云端数据</button>
@@ -281,6 +283,15 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
   <button class="xClose" onclick="hideMask('mProj')">✕</button>
   <h3>选择项目</h3><div class="shSub">请选择你所在的项目进入上报</div>
   <div class="pList" id="projPickList"></div>
+</div></div>
+
+<!-- AI查重 -->
+<div class="mask" id="mDupe"><div class="sheet sheetWrap">
+  <button class="xClose" onclick="hideMask('mDupe')">✕</button>
+  <h3>🔍 AI照片查重</h3><div class="shSub">对当前批次全部照片做感知指纹比对，识别重复上传或同一张照片多部位使用</div>
+  <div id="dupeProg" style="font-size:13px;color:var(--tx2);padding:6px 0"></div>
+  <div id="dupeSum" style="font-size:13px;font-weight:600;padding:4px 0 8px"></div>
+  <div id="dupeRes"></div>
 </div></div>
 
 <!-- 管理口令 -->
@@ -412,6 +423,79 @@ function imgErr(el){
   el.setAttribute('data-s',step);
 }
 function imgReset(el){el.removeAttribute('data-s');el.removeAttribute('data-p')}
+
+/* ============ AI 查重 ============ */
+function dHashImg(img){
+  try{
+    var c=document.createElement('canvas');c.width=9;c.height=8;
+    var x=c.getContext('2d');x.drawImage(img,0,0,9,8);
+    var d=x.getImageData(0,0,9,8).data,g=[],i;
+    for(i=0;i<72;i++){var j=i*4;g.push(0.299*d[j]+0.587*d[j+1]+0.114*d[j+2])}
+    var out=[];
+    for(i=0;i<8;i++){var bt=0;for(var k=0;k<8;k++){bt=(bt<<1)|(g[i*9+k]>g[i*9+k+1]?1:0)}out.push(bt)}
+    return out;
+  }catch(e){return null}
+}
+function hamming(a,b){var d=0;for(var k=0;k<8;k++){var v=a[k]^b[k];while(v){d+=v&1;v>>=1}}return d}
+function loadPhotoForHash(src){
+  return new Promise(function(res){
+    var tries=[src].concat(IMG_FALL.map(function(f){return f+src})),i=0;
+    (function next(){
+      if(i>=tries.length){
+        fetch(src).then(function(r){return r.blob()}).then(function(b){var im=new Image(),u=URL.createObjectURL(b);im.onload=function(){res(im)};im.onerror=function(){res(null)};im.src=u}).catch(function(){res(null)});
+        return;
+      }
+      var im=new Image();
+      im.onload=function(){res(im)};
+      im.onerror=function(){i++;next()};
+      im.src=tries[i];
+    })();
+  });
+}
+function dupeMeta(s){var pt=partById(s.part)||{},p=projByCode(s.p);return (p?p.name:s.p)+' · '+(pt.name||'')+' · '+s.item+' · '+shortTs(s.ts)}
+function dupeFig(e){
+  var pi=+(e.k.split('#')[1]||0),s=e.s;
+  return '<figure><img src="'+e.ph.t+'" onerror="imgErr(this)" onclick="openViewerPhotos(\''+esc(s.p)+'\',\''+esc(s.part)+'\',\''+esc(s.item)+'\','+pi+')"><figcaption>'+esc(dupeMeta(s))+'</figcaption></figure>';
+}
+var DSCANNING=false,DHCACHE={};
+async function openDupeScan(){
+  if(DSCANNING)return;DSCANNING=true;
+  showMask('mDupe');
+  $('dupeRes').innerHTML='';$('dupeSum').textContent='';
+  var b=activeBatch()||{},subs=batchSubs(b.id||''),entries=[];
+  subs.forEach(function(s){(s.ph||[]).forEach(function(x,pi){entries.push({k:s.id+'#'+pi,s:s,ph:x})})});
+  var prog=$('dupeProg');
+  if(entries.length<2){prog.textContent='当前批次照片不足 2 张，无需查重';DSCANNING=false;return}
+  var hashes=new Array(entries.length),done=0,idx=0;
+  async function worker(){
+    while(idx<entries.length){
+      var i=idx++,e=entries[i];
+      if(DHCACHE[e.k]!==undefined){hashes[i]=DHCACHE[e.k]}
+      else{var im=await loadPhotoForHash(e.ph.t),h=im?dHashImg(im):null;DHCACHE[e.k]=h;hashes[i]=h}
+      done++;prog.textContent='正在计算照片指纹 '+done+' / '+entries.length+' …';
+    }
+  }
+  var ws=[];for(var w=0;w<4;w++)ws.push(worker());
+  await Promise.all(ws);
+  prog.textContent='';
+  var fail=0;hashes.forEach(function(h){if(!h)fail++});
+  var pairs=[];
+  for(var i=0;i<entries.length;i++)for(var j=i+1;j<entries.length;j++){
+    if(!hashes[i]||!hashes[j])continue;
+    var d=hamming(hashes[i],hashes[j]);
+    if(d<=10)pairs.push({d:d,i:i,j:j});
+  }
+  pairs.sort(function(a,b){return a.d-b.d});
+  var html='';
+  pairs.forEach(function(pr){
+    var e1=entries[pr.i],e2=entries[pr.j];
+    var badge=pr.d===0?'<span class="badge redo">疑似同一张照片</span>':pr.d<=5?'<span class="badge redo">高度相似</span>':'<span class="badge wait">相似</span>';
+    html+='<div class="itemRow" style="display:block"><div class="nm" style="margin-bottom:6px">重复可疑 '+badge+'</div><div class="dupePair">'+dupeFig(e1)+dupeFig(e2)+'</div></div>';
+  });
+  $('dupeRes').innerHTML=html||'<div class="card empty"><div class="big">✅</div>未发现重复或高度相似的照片</div>';
+  $('dupeSum').textContent='共比对 '+entries.length+' 张照片'+(fail?('（'+fail+'张加载失败跳过）'):'')+'，发现 '+pairs.length+' 组可疑';
+  DSCANNING=false;
+}
 
 /* ============ GitHub API ============ */
 function ghHeaders(){return {Authorization:'token '+TOKEN,Accept:'application/vnd.github+json'}}
