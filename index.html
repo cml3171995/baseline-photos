@@ -449,19 +449,6 @@ async function saveData(mut,msg){
   init();
 })();
 async function init(){
-  loading('加载中…');
-  var obj=null;
-  for(var ii=0;ii<3;ii++){
-    try{
-      try{var r=await fetch('data.json?t='+Date.now());if(r.ok)obj=await r.json()}catch(e){}
-      if(!obj)obj=await loadDataViaApi();
-      if(obj)break;
-    }catch(e){}
-    if(ii<2){loading('网络不稳，正在重试('+(ii+2)+'/3)…');await sleep(900)}
-  }
-  DATA=obj||{batches:[],projects:[],subs:[],parts:[]};
-  loading();
-  if(!obj)toast('云端数据加载失败，请检查网络后重试');
   var sr=sessionStorage.getItem('dx_role');
   if(sr==='admin'){enterRole('admin','');return}
   if(sr==='sh'){enterRole('sh',sessionStorage.getItem('dx_proj')||'');return}
@@ -771,10 +758,20 @@ function doLogin(){
   hideMask('mGate');
   enterRole(r.role,r.proj);
 }
-function enterRole(role,proj){
+async function enterRole(role,proj){
   ROLE=role;
   if(proj){CUR_PROJ=proj;localStorage.setItem('dx_proj',proj)}
   var hb=$('btnAdminGate');hb.style.display='block';hb.textContent='退出';
+  loading('加载数据…');
+  var obj=null;
+  for(var ii=0;ii<3;ii++){
+    try{obj=await loadDataViaApi();if(obj)break}catch(e){}
+    if(ii<2){loading('网络不稳，正在重试('+(ii+2)+'/3)…');await sleep(900)}
+  }
+  if(obj)DATA=obj;
+  else toast('云端数据加载失败，请检查网络后重试');
+  DATA.parts=DATA.parts||[];
+  loading();
   if(role==='admin')enterAdmin();
   else if(role==='sh')enterSH();
   else showParts();
