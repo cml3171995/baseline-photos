@@ -121,8 +121,8 @@ textarea.inp:focus,input.inp:focus{border-color:var(--blue)}
 .mxHead .nm{font-size:15px;font-weight:700;word-break:break-all}
 .mxHead .fin{font-size:12px;font-weight:700;color:var(--tx2);white-space:nowrap}
 .mxHead .fin.full{color:var(--ok)}
-.dotGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
-.dg{aspect-ratio:1;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;background:#e8eef6;color:#a9b8c9}
+.dotGrid{display:flex;flex-wrap:wrap;gap:7px}
+.dg{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;background:#e8eef6;color:#a9b8c9}
 .dg.ok{background:linear-gradient(135deg,#1fae6a,#189a58);color:#fff}
 .dg.redo{background:linear-gradient(135deg,#e05a55,#d64541);color:#fff}
 .dg:active{opacity:.8}
@@ -334,15 +334,16 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
   <button class="priBtn" onclick="createPart()">保存</button>
 </div></div>
 
-<!-- 新建批次 -->
+<!-- 批次编辑器（新建/编辑共用） -->
 <div class="mask" id="mBatch"><div class="sheet sheetWrap">
   <button class="xClose" onclick="hideMask('mBatch')">✕</button>
-  <h3>新建批次</h3><div class="shSub">创建后自动设为当前批次，各项目端立即显示新清单</div>
+  <h3 id="ebTitle">新建批次</h3><div class="shSub" id="ebSub">创建后自动设为当前批次，各项目端立即显示新清单</div>
   <div class="fieldLab">批次名称</div>
-  <input class="inp" id="nbName" placeholder="例如：冬期施工质量专项">
-  <div class="fieldLab">做法项清单（每行一条）</div>
-  <textarea class="inp" id="nbItems" rows="7" placeholder="高低标号拦截&#10;梁侧垫块&#10;…"></textarea>
-  <button class="priBtn" onclick="createBatch()">创建批次</button>
+  <input class="inp" id="ebName" placeholder="例如：冬期施工质量专项">
+  <div class="fieldLab" id="ebWarn" style="display:none;color:var(--bad)">⚠ 修改做法项名称或删除做法项后，该项已有的上报记录将不再对应显示（记录仍保留在云端）</div>
+  <div id="ebGroups"></div>
+  <button class="ghostBtn" onclick="ebAddGroup('','')">＋ 添加分组</button>
+  <button class="priBtn" onclick="saveBatchEdit()">保存</button>
 </div></div>
 
 <!-- 新增项目 -->
@@ -380,6 +381,10 @@ var ROLE='';
 var PASS='8888';
 var SH_ENABLED=false; // 项目审核端开关：true=恢复三级审核
 function stName(st){return st==='ok'?'复核合格':st==='p_ok'?'初审通过':(st==='redo'||st==='p_redo')?'需重传':st==='pending'?'待初审':'未上报'}
+function allItems(b){
+  if(b&&b.groups)return (function(){var a=[];b.groups.forEach(function(g){(g.items||[]).forEach(function(it){a.push(it)})});return a})();
+  return (b&&b.items)||[];
+}
 var IS_ADMIN=false, TAB='mx', VIEW_BATCH='';
 var UP={item:null,files:[],old:null};
 var DT={sub:null,proj:null,item:null};
@@ -516,7 +521,7 @@ function showParts(){
   $('partHome').style.display='block';$('partView').style.display='none';
   var p=projByCode(CUR_PROJ);
   $('projName').textContent=p?p.name:'未知项目';
-  var b=activeBatch(),items=b?b.items:[],parts=partsOfProj(CUR_PROJ),done=0;
+  var b=activeBatch(),items=b?allItems(b):[],parts=partsOfProj(CUR_PROJ),done=0;
   parts.forEach(function(pt){items.forEach(function(it){var s=subOf(b.id,CUR_PROJ,pt.id,it);if(s&&s.st!=='redo')done++})});
   var total=parts.length*items.length;
   $('batchName2').textContent=b?b.name:'暂无上报任务';
@@ -544,8 +549,12 @@ function renderPartView(){
   var b=activeBatch();
   if(!b){$('itemList').innerHTML='<div class="card empty"><div class="big">📭</div>暂无进行中的上报批次</div>';$('progNum').innerHTML='0<small>/0</small>';$('progI').style.width='0%';$('progTxt').textContent='';return}
   $('partNameT').textContent=pt?pt.name+' · '+b.name:b.name;
-  var items=b.items||[],done=0,html='';
-  items.forEach(function(it,ix){
+  var done=0,html='',gi=0;
+  (b.groups&&b.groups.length?b.groups:[{name:'',items:allItems(b)}]).forEach(function(g){
+  var gname=(g.name||'').trim();
+  if(gname&&g.items&&g.items.length)html+='<div class="wallGroup">'+esc(gname)+'</div>';
+  (g.items||[]).forEach(function(it){
+    gi++;var ix=gi-1;
     var s=subOf(b.id,CUR_PROJ,CUR_PART,it);
     var cls='',badge='<span class="badge wait">待上报</span>',meta='',mid='',btn='<button class="actBtn" onclick="openUpload(\''+esc(it)+'\')">去上报</button>';
     if(s){
@@ -565,6 +574,7 @@ function renderPartView(){
       mid+='<div class="thumbs">'+ths+'</div>'+mid;
     }
     html+='<div class="itemRow '+cls+'"><div class="idx">'+(ix+1)+'</div><div class="mid"><div class="nm">'+esc(it)+badge+'</div><div class="meta">'+meta+'</div>'+mid+'</div>'+btn+'</div>';
+  });
   });
   $('itemList').innerHTML=html;
   $('progNum').innerHTML=done+'<small>/'+items.length+'</small>';
@@ -802,7 +812,7 @@ function enterSH(){
   renderSH();
 }
 function renderSH(){
-  var b=activeBatch()||{},items=b.items||[],subs=batchSubs(b.id||''),parts=partsOfProj(CUR_PROJ);
+  var b=activeBatch()||{},items=allItems(b),subs=batchSubs(b.id||''),parts=partsOfProj(CUR_PROJ);
   var np=0,npo=0,no=0,nr=0,html='';
   parts.forEach(function(pt){
     var cells='';
@@ -840,7 +850,7 @@ function batchById(id){for(var i=0;i<(DATA.batches||[]).length;i++)if(DATA.batch
 function batchSubs(bid){var a=[];for(var i=0;i<(DATA.subs||[]).length;i++)if(DATA.subs[i].b===bid)a.push(DATA.subs[i]);return a}
 function renderAdminStats(){
   var b=batchById(VIEW_BATCH)||activeBatch()||{};
-  var items=b.items||[],projs=DATA.projects||[],subs=batchSubs(b.id||''),parts=DATA.parts||[];
+  var items=allItems(b),projs=DATA.projects||[],subs=batchSubs(b.id||''),parts=DATA.parts||[];
   var full=0,photos=0,redo=0,tot=0;
   projs.forEach(function(p){
     parts.filter(function(x){return x.proj===p.code}).forEach(function(pt){
@@ -873,7 +883,7 @@ function switchTab(t){
 function renderMx(){
   var b=batchById(VIEW_BATCH);var box=$('paneMx');
   if(!b){box.innerHTML='<div class="card empty"><div class="big">📭</div>暂无批次</div>';return}
-  var items=b.items||[],subs=batchSubs(b.id),html='';
+  var items=allItems(b),subs=batchSubs(b.id),html='';
   (DATA.projects||[]).forEach(function(p){
     var pts=(DATA.parts||[]).filter(function(x){return x.proj===p.code});
     var rows='';
@@ -896,7 +906,7 @@ function renderMx(){
 function renderWall(){
   var b=batchById(VIEW_BATCH);var box=$('paneWall');
   if(!b){box.innerHTML='<div class="card empty"><div class="big">📭</div>暂无批次</div>';return}
-  var items=b.items||[],subs=batchSubs(b.id);
+  var items=allItems(b),subs=batchSubs(b.id);
   window._wall={items:items,subs:subs};
   var chips='<div class="chips">'+items.map(function(it,i){return '<button class="chip'+(i===0?' on':'')+'" onclick="wallItem(this,\''+esc(it)+'\')">'+esc(it)+'</button>'}).join('')+'</div>';
   box.innerHTML=chips+'<div id="wallBody"></div>';
@@ -922,7 +932,7 @@ function wallRender(item){
 function renderBatchList(){
   var html='';
   (DATA.batches||[]).slice().reverse().forEach(function(b){
-    html+='<div class="btRow"><div class="bi"><div class="bn">'+esc(b.name)+'</div><div class="bs">'+(b.items||[]).length+'个做法项 · '+(b.created||'')+'</div></div>'+(b.active?'<span class="tagOn">进行中</span>':'<button class="actBtn ghost" style="padding:7px 13px;font-size:12.5px" onclick="setActiveBatch(\''+b.id+'\')">设为进行中</button>')+'</div>';
+    html+='<div class="btRow"><div class="bi"><div class="bn">'+esc(b.name)+'</div><div class="bs">'+allItems(b).length+'个做法项 · '+(b.created||'')+'</div></div>'+(b.active?'<span class="tagOn">进行中</span>':'<button class="actBtn ghost" style="padding:7px 13px;font-size:12.5px" onclick="setActiveBatch(\''+b.id+'\')">设为进行中</button>')+'<button class="actBtn ghost" style="padding:7px 13px;font-size:12.5px" onclick="openBatchEdit(\''+b.id+'\')">编辑</button></div>';
   });
   $('batchList').innerHTML=html||'<div class="empty">暂无批次</div>';
 }
@@ -930,18 +940,51 @@ async function setActiveBatch(id){
   loading('切换批次…');
   try{await saveData(function(o){o.batches.forEach(function(x){x.active=(x.id===id)})},'切换当前批次');loading();toast('已切换');loadAdmin()}catch(e){loading();toast('操作失败')}
 }
-function openNewBatch(){ $('nbName').value='';$('nbItems').value='';showMask('mBatch') }
-async function createBatch(){
-  var name=$('nbName').value.trim(),items=$('nbItems').value.split('\n').map(function(s){return s.trim()}).filter(Boolean);
-  if(!name||!items.length){toast('请填写批次名称和做法项');return}
-  loading('创建中…');
+var EB_BID=null;
+function openBatchEdit(bid){
+  EB_BID=bid||null;
+  var b=bid?batchById(bid):null;
+  $('ebTitle').textContent=b?'编辑批次':'新建批次';
+  $('ebSub').textContent=b?'修改后各项目端立即生效':'创建后自动设为当前批次，各项目端立即显示新清单';
+  $('ebWarn').style.display=b?'block':'none';
+  $('ebName').value=b?b.name:'';
+  $('ebGroups').innerHTML='';
+  var groups=(b&&b.groups&&b.groups.length)?b.groups:[(b?{name:'',items:allItems(b)}:{name:'',items:[]})];
+  groups.forEach(function(g){ebAddGroup(g.name||'',(g.items||[]).join('\n'))});
+  showMask('mBatch');
+}
+function ebAddGroup(name,items){
+  var d=document.createElement('div');d.className='ebGroup';
+  d.innerHTML='<div class="ebgHead"><span>分组名称（选填）</span><button class="ebgDel" onclick="this.parentNode.parentNode.remove()">删除分组</button></div>'+
+    '<input class="inp ebgName" placeholder="如：浇筑前 / 浇筑中 / 浇筑后" value="'+esc(name)+'">'+
+    '<div class="fieldLab">该组做法项（每行一条）</div>'+
+    '<textarea class="inp ebgItems" rows="4">'+esc(items)+'</textarea>';
+  $('ebGroups').appendChild(d);
+}
+async function saveBatchEdit(){
+  var name=$('ebName').value.trim();
+  var groups=[];
+  var gEls=document.querySelectorAll('#ebGroups .ebGroup');
+  gEls.forEach(function(el){
+    var gn=el.querySelector('.ebgName').value.trim();
+    var its=el.querySelector('.ebgItems').value.split('\n').map(function(s){return s.trim()}).filter(Boolean);
+    if(its.length)groups.push({name:gn,items:its});
+  });
+  if(!name){toast('请填写批次名称');return}
+  if(!groups.length){toast('请至少填写一个做法项');return}
+  loading('保存中…');
   try{
     await saveData(function(o){
-      o.batches=o.batches||[];o.batches.forEach(function(x){x.active=false});
-      o.batches.push({id:'b'+Date.now().toString(36),name:name,items:items,active:true,created:nowStr().slice(0,10)});
-    },'新建批次 '+name);
-    loading();hideMask('mBatch');toast('✅ 批次已创建并设为进行中');loadAdmin();
-  }catch(e){loading();toast('创建失败：'+esc(e.message||e))}
+      o.batches=o.batches||[];
+      if(EB_BID){
+        for(var k=0;k<o.batches.length;k++)if(o.batches[k].id===EB_BID){o.batches[k].name=name;o.batches[k].groups=groups;delete o.batches[k].items}
+      }else{
+        o.batches.forEach(function(x){x.active=false});
+        o.batches.push({id:'b'+Date.now().toString(36),name:name,groups:groups,active:true,created:nowStr().slice(0,10)});
+      }
+    },(EB_BID?'编辑':'新建')+'批次 '+name);
+    loading();hideMask('mBatch');toast('✅ 已保存');loadAdmin();
+  }catch(e){loading();toast('保存失败：'+esc(e.message||e))}
 }
 function renderProjList(){
   var html='';
@@ -1017,7 +1060,7 @@ function fallbackCopy(t){
 }
 function copyUrge(){
   var b=batchById(VIEW_BATCH)||activeBatch();if(!b)return;
-  var items=b.items||[],subs=batchSubs(b.id),lines=[],miss=0;
+  var items=allItems(b),subs=batchSubs(b.id),lines=[],miss=0;
   (DATA.projects||[]).forEach(function(p){
     var pts=(DATA.parts||[]).filter(function(x){return x.proj===p.code});
     if(!pts.length){miss++;lines.push((miss)+'. '+p.name+'（未添加工程部位）');return}
@@ -1033,7 +1076,7 @@ function copyUrge(){
 }
 function exportCSV(){
   var b=batchById(VIEW_BATCH)||activeBatch();if(!b){toast('暂无批次');return}
-  var items=b.items||[],subs=batchSubs(b.id),rows=[['项目','部位','计划浇筑','做法项','照片数','提交时间','状态','说明','审核意见','照片链接']];
+  var items=allItems(b),subs=batchSubs(b.id),rows=[['项目','部位','计划浇筑','做法项','照片数','提交时间','状态','说明','审核意见','照片链接']];
   (DATA.projects||[]).forEach(function(p){
     (DATA.parts||[]).filter(function(x){return x.proj===p.code}).forEach(function(pt){
       items.forEach(function(it){
