@@ -448,6 +448,7 @@ function loadPhotoForHash(src){
       var im=new Image();
       im.onload=function(){res(im)};
       im.onerror=function(){i++;next()};
+      if(i>0)im.crossOrigin='anonymous';
       im.src=tries[i];
     })();
   });
@@ -462,7 +463,7 @@ async function openDupeScan(){
   if(DSCANNING)return;DSCANNING=true;
   showMask('mDupe');
   $('dupeRes').innerHTML='';$('dupeSum').textContent='';
-  var b=activeBatch()||{},subs=batchSubs(b.id||''),entries=[];
+  var b=batchById(VIEW_BATCH)||activeBatch()||{},subs=batchSubs(b.id||''),entries=[];
   subs.forEach(function(s){(s.ph||[]).forEach(function(x,pi){entries.push({k:s.id+'#'+pi,s:s,ph:x})})});
   var prog=$('dupeProg');
   if(entries.length<2){prog.textContent='当前批次照片不足 2 张，无需查重';DSCANNING=false;return}
@@ -490,7 +491,8 @@ async function openDupeScan(){
   pairs.forEach(function(pr){
     var e1=entries[pr.i],e2=entries[pr.j];
     var badge=pr.d===0?'<span class="badge redo">疑似同一张照片</span>':pr.d<=5?'<span class="badge redo">高度相似</span>':'<span class="badge wait">相似</span>';
-    html+='<div class="itemRow" style="display:block"><div class="nm" style="margin-bottom:6px">重复可疑 '+badge+'</div><div class="dupePair">'+dupeFig(e1)+dupeFig(e2)+'</div></div>';
+    var cross=(e1.s.part!==e2.s.part||e1.s.item!==e2.s.item)?'<span class="badge redo">一图多用</span>':'';
+    html+='<div class="itemRow" style="display:block"><div class="nm" style="margin-bottom:6px">重复可疑 '+badge+cross+'</div><div class="dupePair">'+dupeFig(e1)+dupeFig(e2)+'</div></div>';
   });
   $('dupeRes').innerHTML=html||'<div class="card empty"><div class="big">✅</div>未发现重复或高度相似的照片</div>';
   $('dupeSum').textContent='共比对 '+entries.length+' 张照片'+(fail?('（'+fail+'张加载失败跳过）'):'')+'，发现 '+pairs.length+' 组可疑';
