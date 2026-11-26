@@ -286,11 +286,11 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
 <!-- 管理口令 -->
 <div class="mask" id="mGate" style="align-items:center;z-index:1500"><div class="sheet" style="border-radius:18px;max-width:360px;margin:0 20px;padding-bottom:14px">
   <h3 style="text-align:center;font-size:18px">身份登录</h3>
-  <div class="shSub" style="text-align:center">项目上传 · 分公司监管</div>
+  
   <div class="fieldLab">账号</div>
-  <input class="inp" id="loginUser" placeholder="上传:项目编号 监管:GS" autocapitalize="characters" style="text-transform:uppercase">
-  <div class="fieldLab">口令</div>
-  <input class="inp" id="loginPass" type="password" placeholder="请输入口令">
+  <input class="inp" id="loginUser" placeholder="" autocapitalize="characters" style="text-transform:uppercase">
+  <div class="fieldLab">密码</div>
+  <input class="inp" id="loginPass" type="password" placeholder="请输入密码">
   <button class="priBtn" onclick="doLogin()">进入</button>
   <div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:10px">账号由分公司技术质量部统一发放</div>
 </div></div>
@@ -751,7 +751,7 @@ function doLogin(){
   var u=$('loginUser').value.trim().toUpperCase(),p=$('loginPass').value;
   var r=roleOf(u);
   if(!r){toast('账号不存在，请核对');return}
-  if(p!==PASS){toast('口令不正确');return}
+  if(p!==PASS){toast('密码不正确');return}
   sessionStorage.setItem('dx_role',r.role);
   sessionStorage.setItem('dx_proj',r.proj||'');
   $('loginPass').value='';
