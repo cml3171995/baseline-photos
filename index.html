@@ -743,8 +743,8 @@ async function vReview(st){
 /* ============ 管理端 ============ */
 function roleOf(u){
   if(u==='GS')return{role:'admin',proj:''};
-  if(SH_ENABLED&&u.length>2&&u.indexOf('SH')===0&&projByCode(u.slice(2)))return{role:'sh',proj:u.slice(2)};
-  if(projByCode(u))return{role:'up',proj:u};
+  if(SH_ENABLED&&/^SH\d+$/.test(u))return{role:'sh',proj:u.slice(2)};
+  if(/^\d+$/.test(u))return{role:'up',proj:u};
   return null;
 }
 function doLogin(){
@@ -772,6 +772,10 @@ async function enterRole(role,proj){
   else toast('云端数据加载失败，请检查网络后重试');
   DATA.parts=DATA.parts||[];
   loading();
+  if((role==='up'||role==='sh')&&!projByCode(proj)){
+    ROLE='';sessionStorage.removeItem('dx_role');sessionStorage.removeItem('dx_proj');
+    toast('账号不存在，请核对');showMask('mGate');return;
+  }
   if(role==='admin')enterAdmin();
   else if(role==='sh')enterSH();
   else showParts();
