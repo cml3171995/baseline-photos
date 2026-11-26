@@ -357,7 +357,7 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
 <!-- 大图查看器 -->
 <div id="viewer">
   <div class="vh"><button onclick="closeViewer()" style="color:#fff;font-size:14px">✕ 关闭</button><div class="vt" id="vTitle"></div><span id="vCnt" style="font-size:12px;opacity:.8"></span></div>
-  <div class="vImgWrap"><img id="vImg" alt=""></div>
+  <div class="vImgWrap"><img id="vImg" alt="" onerror="imgErr(this)"></div>
   <div class="vNav"><button id="vPrev" onclick="vStep(-1)">‹ 上一张</button><span id="vPos"></span><button id="vNext" onclick="vStep(1)">下一张 ›</button></div>
   <div class="vFoot" id="vFoot"></div>
 </div>
@@ -396,6 +396,17 @@ function loading(s){var l=$('loading');if(s){$('loadTxt').innerHTML=s;l.style.di
 function showMask(id){$(id).classList.add('show')}
 function hideMask(id){$(id).classList.remove('show')}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+var IMG_FALL=['https://cdn.jsdelivr.net/gh/cml3171995/baseline-photos@main/','https://raw.githubusercontent.com/cml3171995/baseline-photos/main/'];
+function imgErr(el){
+  var step=+(el.getAttribute('data-s')||0),p=el.getAttribute('data-p');
+  if(!p){p=el.getAttribute('src')||'';el.setAttribute('data-p',p)}
+  step++;
+  if(step<=IMG_FALL.length){el.src=IMG_FALL[step-1]+p}
+  else if(step===IMG_FALL.length+1){fetch(p).then(function(r){return r.blob()}).then(function(b){el.src=URL.createObjectURL(b)}).catch(function(){})}
+  else return;
+  el.setAttribute('data-s',step);
+}
+function imgReset(el){el.removeAttribute('data-s');el.removeAttribute('data-p')}
 
 /* ============ GitHub API ============ */
 function ghHeaders(){return {Authorization:'token '+TOKEN,Accept:'application/vnd.github+json'}}
@@ -550,7 +561,7 @@ function renderPartView(){
         meta='提交于 '+esc(shortTs(s.ts))+(s.note?(' · '+esc(s.note)):'');
         btn='<button class="actBtn ghost" onclick="openDetail(\''+esc(CUR_PROJ)+'\',\''+esc(CUR_PART)+'\',\''+esc(it)+'\')">查看</button>';
       }
-      var ths=(s.ph||[]).map(function(x){return '<img src="'+x.t+'" loading="lazy" onclick="openViewerPhotos(\''+esc(CUR_PROJ)+'\',\''+esc(CUR_PART)+'\',\''+esc(it)+'\')">'}).join('');
+      var ths=(s.ph||[]).map(function(x){return '<img src="'+x.t+'" loading="lazy" onerror="imgErr(this)" onclick="openViewerPhotos(\''+esc(CUR_PROJ)+'\',\''+esc(CUR_PART)+'\',\''+esc(it)+'\')">'}).join('');
       mid+='<div class="thumbs">'+ths+'</div>'+mid;
     }
     html+='<div class="itemRow '+cls+'"><div class="idx">'+(ix+1)+'</div><div class="mid"><div class="nm">'+esc(it)+badge+'</div><div class="meta">'+meta+'</div>'+mid+'</div>'+btn+'</div>';
@@ -572,7 +583,7 @@ function openUpload(item){
   $('upSub').textContent=(p?p.name:CUR_PROJ)+' · '+(pt?pt.name:'')+' · 照片自动附加水印';
   if(UP.old&&(UP.old.ph||[]).length){
     $('upOldWrap').style.display='block';
-    $('upOldThumbs').innerHTML=UP.old.ph.map(function(x){return '<img src="'+x.t+'">'}).join('');
+    $('upOldThumbs').innerHTML=UP.old.ph.map(function(x){return '<img src="'+x.t+'" onerror="imgErr(this)">'}).join('');
   }else{$('upOldWrap').style.display='none'}
   $('prevGrid').innerHTML='';$('upNote').value='';
   $('upSubmit').disabled=false;$('upSubmit').textContent='提交上报';
@@ -675,7 +686,7 @@ function openDetail(projCode,partId,item){
   $('dtTitle').textContent=item;
   $('dtSub').textContent=(p?p.name:projCode)+(pt?(' · '+pt.name):'')+(s?(' · 提交于 '+shortTs(s.ts)+(s.note?(' · '+s.note):'')):' · 尚未上报');
   if(!s){$('dtBody').innerHTML='<div class="empty"><div class="big">📭</div>该部位尚未上报此项</div>';$('dtAdmin').innerHTML='';showMask('mDetail');return}
-  $('dtBody').innerHTML='<div class="thumbs" style="margin-top:2px">'+s.ph.map(function(x,i){return '<img src="'+x.t+'" style="width:30%;height:auto;aspect-ratio:1" onclick="openViewerPhotos(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\','+i+')">'}).join('')+'</div>'+
+  $('dtBody').innerHTML='<div class="thumbs" style="margin-top:2px">'+s.ph.map(function(x,i){return '<img src="'+x.t+'" onerror="imgErr(this)" style="width:30%;height:auto;aspect-ratio:1" onclick="openViewerPhotos(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\','+i+')">'}).join('')+'</div>'+
     ((s.st==='redo'||s.st==='p_redo')?'<div class="note" style="font-size:13px;color:var(--bad);background:var(--badbg);border-radius:10px;padding:9px 12px;margin-top:10px">⚠ 需重传：'+esc(s.rv||'不符合要求')+'</div>':
      s.st==='ok'?'<div style="font-size:13px;color:var(--ok);margin-top:10px;font-weight:700">✔ 复核合格</div>':
      s.st==='p_ok'?'<div style="font-size:13px;color:#2c8c62;margin-top:10px;font-weight:700">✔ 初审通过 · 待分公司复核</div>':'');
@@ -717,6 +728,7 @@ function openViewerPhotos(projCode,partId,item,idx){
 }
 function vRender(){
   var x=VW.list[VW.idx];
+  imgReset($('vImg'));
   $('vImg').src=x.f;$('vPos').textContent=(VW.idx+1)+'/'+VW.list.length;
   $('vPrev').disabled=VW.idx<=0;$('vNext').disabled=VW.idx>=VW.list.length-1;
   var s=subOf(activeBatch().id,VW.proj,VW.part,VW.item);
@@ -901,7 +913,7 @@ function wallRender(item){
       var s=null;subs.forEach(function(x){if(x.p===p.code&&x.part===pt.id&&x.item===item)s=x});
       if(!s||!(s.ph||[]).length)return;
       html+='<div class="wallGroup">'+esc(p.name)+' · '+esc(pt.name)+'</div><div class="wall">'+s.ph.map(function(x,i){
-        return '<div class="wp"><img src="'+x.t+'" loading="lazy" onclick="openViewerPhotos(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(item)+'\','+i+')">'+(s.st==='ok'?'<span class="rk ok">合格</span>':(s.st==='redo'||s.st==='p_redo')?'<span class="rk redo">重传</span>':s.st==='p_ok'?'<span class="rk" style="background:#3ba877">待复核</span>':'')+'<div class="cap">'+esc(shortTs(s.ts))+(s.note?(' · '+esc(s.note)):'')+'</div></div>';
+        return '<div class="wp"><img src="'+x.t+'" loading="lazy" onerror="imgErr(this)" onclick="openViewerPhotos(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(item)+'\','+i+')">'+(s.st==='ok'?'<span class="rk ok">合格</span>':(s.st==='redo'||s.st==='p_redo')?'<span class="rk redo">重传</span>':s.st==='p_ok'?'<span class="rk" style="background:#3ba877">待复核</span>':'')+'<div class="cap">'+esc(shortTs(s.ts))+(s.note?(' · '+esc(s.note)):'')+'</div></div>';
       }).join('')+'</div>';
     });
   });
