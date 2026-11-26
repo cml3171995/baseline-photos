@@ -464,7 +464,7 @@ function activeBatch(){
   for(var i=0;i<DATA.batches.length;i++)if(DATA.batches[i].active)return DATA.batches[i];
   return DATA.batches[0]||null;
 }
-function projByCode(c){for(var i=0;i<(DATA.projects||[]).length;i++)if(DATA.projects[i].code===c)return DATA.projects[i];return null}
+function projByCode(c){if(!DATA)return null;for(var i=0;i<(DATA.projects||[]).length;i++)if(DATA.projects[i].code===c)return DATA.projects[i];return null}
 function partsOfProj(pc){var a=[];for(var i=0;i<(DATA.parts||[]).length;i++)if(DATA.parts[i].proj===pc)a.push(DATA.parts[i]);return a}
 function partById(id){for(var i=0;i<(DATA.parts||[]).length;i++)if(DATA.parts[i].id===id)return DATA.parts[i];return null}
 function subOf(b,p,pt,item){
