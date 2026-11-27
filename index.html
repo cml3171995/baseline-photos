@@ -341,7 +341,7 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
   <div class="fieldLab">部位名称</div>
   <input class="inp" id="npPartName" placeholder="例如：5#楼3层墙体、1#楼地下室底板">
   <div class="fieldLab">计划浇筑时间</div>
-  <input class="inp" id="npPartPour" type="datetime-local">
+  <input class="inp" id="npPartPour" type="date">
   <button class="priBtn" onclick="createPart()">保存</button>
 </div></div>
 
@@ -598,7 +598,7 @@ async function createPart(){
   if(!name){toast('请填写部位名称');return}
   loading('保存中…');
   try{
-    await saveData(function(o){o.parts=o.parts||[];o.parts.push({id:'pt'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),proj:CUR_PROJ,name:name,pour:pour.replace('T',' '),created:nowStr()})},'添加工程部位 '+name);
+    await saveData(function(o){o.parts=o.parts||[];o.parts.push({id:'pt'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),proj:CUR_PROJ,name:name,pour:pour,created:nowStr()})},'添加工程部位 '+name);
     loading();hideMask('mPart');toast('✅ 部位已添加');showParts();
   }catch(e){loading();toast('保存失败：'+esc(e.message||e))}
 }
