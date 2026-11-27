@@ -556,6 +556,7 @@ async function init(){
   if(sr==='sh'){enterRole('sh',sessionStorage.getItem('dx_proj')||'');return}
   if(sr==='up'){enterRole('up',sessionStorage.getItem('dx_proj')||'');return}
   var pf=sessionStorage.getItem('dx_prefill')||'';
+  if(!pf){try{pf=localStorage.getItem('dx_last_user')||''}catch(e){}}
   sessionStorage.removeItem('dx_prefill');
   if(pf)$('loginUser').value=pf;
   showMask('mGate');
@@ -863,6 +864,7 @@ function doLogin(){
   if(p!==PASS){toast('密码不正确');return}
   sessionStorage.setItem('dx_role',r.role);
   sessionStorage.setItem('dx_proj',r.proj||'');
+  try{localStorage.setItem('dx_last_user',u)}catch(e){}
   $('loginPass').value='';
   hideMask('mGate');
   enterRole(r.role,r.proj);
