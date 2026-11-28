@@ -316,7 +316,7 @@ footer{text-align:center;color:var(--tx3);font-size:11.5px;padding:18px 14px 0;l
   </div>
   <div class="fieldLab">现场照片（可多选，最多20张）</div>
   <div class="selArea" id="selArea" onclick="document.getElementById('fileInp').click()">
-    <div class="big">📷</div>点击拍照 / 从相册选择
+    <div class="big">📷</div>点击拍照 / 从相册选择（相册一次最多9张，可重复添加，累计最多20张）
   </div>
   <input type="file" id="fileInp" accept="image/*" multiple style="display:none">
   <div class="prevGrid" id="prevGrid"></div>
@@ -975,21 +975,23 @@ function switchTab(t){
 function renderMx(){
   var b=batchById(VIEW_BATCH);var box=$('paneMx');
   if(!b){box.innerHTML='<div class="card empty"><div class="big">📭</div>暂无批次</div>';return}
-  var items=allItems(b),subs=batchSubs(b.id),html='';
+  var items=allItems(b),subs=batchSubs(b.id);
+  var html='<div style="font-size:12px;color:#8a97a8;margin:2px 2px 10px;display:flex;gap:10px;flex-wrap:wrap"><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:linear-gradient(135deg,#1fae6a,#189a58)"></span> 已合格</span><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:linear-gradient(135deg,#4a90d9,#2f6fbb)"></span> 已上报待审</span><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:linear-gradient(135deg,#e05a55,#d64541)"></span> 需重传</span><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#e8eef6"></span> 未上报</span></div>';
   (DATA.projects||[]).forEach(function(p){
     var pts=(DATA.parts||[]).filter(function(x){return x.proj===p.code});
     var rows='';
     pts.forEach(function(pt){
-      var ok=0,rd=0,cells='';
+      var ok=0,rd=0,pd=0,cells='';
       items.forEach(function(it){
         var s=null;subs.forEach(function(x){if(x.p===p.code&&x.part===pt.id&&x.item===it)s=x});
         if(s&&s.st==='ok'){ok++;cells+='<div class="dg ok" onclick="openDetail(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(it)+'\')">✓</div>'}
         else if(s&&s.st==='p_ok'){cells+='<div class="dg pok" onclick="openDetail(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(it)+'\')">✓</div>'}
         else if(s&&(s.st==='redo'||s.st==='p_redo')){rd++;cells+='<div class="dg redo" onclick="openDetail(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(it)+'\')">!</div>'}
+        else if(s){pd++;cells+='<div class="dg pend" onclick="openDetail(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(it)+'\')">'+(s.ph||[]).length+'</div>'}
         else cells+='<div class="dg" onclick="openDetail(\''+esc(p.code)+'\',\''+esc(pt.id)+'\',\''+esc(it)+'\')">·</div>';
       });
       var full=items.length&&ok>=items.length;
-      rows+='<div class="partRow"><div class="prHead"><div class="prName">'+(full?'✅ ':rd?'⚠️ ':'')+esc(pt.name)+'<span class="prDate">'+esc(pt.pour||'')+'</span></div><div class="fin'+(full?' full':'')+'">'+ok+'/'+items.length+(full?' 报齐':'')+'</div></div><div class="dotGrid">'+cells+'</div></div>';
+      rows+='<div class="partRow"><div class="prHead"><div class="prName">'+(full?'✅ ':rd?'⚠️ ':'')+esc(pt.name)+'<span class="prDate">'+esc(pt.pour||'')+'</span></div><div class="fin'+(full?' full':'')+'">'+ok+'/'+items.length+(pd?(' · 待审'+pd):'')+(full?' 报齐':'')+'</div></div><div class="dotGrid">'+cells+'</div></div>';
     });
     html+='<div class="mxCard"><div class="mxHead"><div class="nm">'+esc(p.name)+'</div><div class="fin">'+pts.length+'个部位</div></div>'+(rows||'<div class="empty" style="padding:8px 0">该项目尚未添加工程部位</div>')+'</div>';
   });
