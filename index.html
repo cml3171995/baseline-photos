@@ -790,8 +790,8 @@ function openDetail(projCode,partId,item){
     ((s.st==='redo'||s.st==='p_redo')?'<div class="note" style="font-size:13px;color:var(--bad);background:var(--badbg);border-radius:10px;padding:9px 12px;margin-top:10px">⚠ 需重传：'+esc(s.rv||'不符合要求')+'</div>':
      s.st==='ok'?'<div style="font-size:13px;color:var(--ok);margin-top:10px;font-weight:700">✔ 复核合格</div>':
      s.st==='p_ok'?'<div style="font-size:13px;color:#2c8c62;margin-top:10px;font-weight:700">✔ 初审通过 · 待分公司复核</div>':'');
-  if(projCode===CUR_PROJ&&ROLE==='up'&&s){ab+='<button class="ghostBtn" style="width:100%;margin-top:9px" onclick="hideMask(\'mDetail\');openUpload(\''+esc(item)+'\')">＋ 追加照片（可单独备注）</button>'}
   var ab='';
+  if(projCode===CUR_PROJ&&ROLE==='up'&&s){ab+='<button class="ghostBtn" style="width:100%;margin-top:9px" onclick="hideMask(\'mDetail\');openUpload(\''+esc(item)+'\')">＋ 追加照片（可单独备注）</button>'}
   if(ROLE==='sh') ab='<div class="rowBtns"><button class="rbOk" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'p_ok\')">✔ 初审合格</button><button class="rbRedo" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'p_redo\')">✘ 初审打回</button></div>';
   else if(ROLE==='admin') ab='<div class="rowBtns"><button class="rbOk" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'ok\')">✔ 复核合格</button><button class="rbRedo" onclick="review(\''+esc(projCode)+'\',\''+esc(partId)+'\',\''+esc(item)+'\',\'redo\')">✘ 打回重传</button></div>';
   if(ab)ab+='<textarea class="inp" id="rvNote" rows="2" placeholder="审核意见（选填，打回时建议填写原因）" style="margin-top:9px">'+esc(s.rv||'')+'</textarea>';
